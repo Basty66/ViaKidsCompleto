@@ -157,6 +157,7 @@ export const ParentDashboard = ({ tab }) => {
                             <div className="flex-1 min-w-0">
                                 <h1 className="text-lg md:text-2xl font-bold text-white truncate">{student.nombre}</h1>
                                 <p className="text-slate-400 text-sm">{student.curso} — {student.colegio}</p>
+                                {student.rut && <p className="text-slate-500 text-xs mt-0.5">RUT: {student.rut}</p>}
                             </div>
                             <div className="flex gap-2 w-full sm:w-auto">
                                 <button

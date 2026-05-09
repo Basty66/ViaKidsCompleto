@@ -33,6 +33,8 @@ public class User {
 
     private String telefono;
 
+    private String rut;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserStatus estado = UserStatus.ACTIVO;

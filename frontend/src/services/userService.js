@@ -28,6 +28,7 @@ const mapToBackend = (u) => ({
     password: u.password || undefined,
     rol: roleMap[u.rol] || u.rol,
     telefono: u.telefono || '',
+    rut: u.rut || '',
     estado: statusMap[u.estado] || u.estado || 'ACTIVO',
 });
 
@@ -37,6 +38,7 @@ const mapFromBackend = (u) => ({
     email: u.email,
     rol: roleMapReverse[u.rol] || u.rol,
     telefono: u.telefono || '',
+    rut: u.rut || '',
     estado: statusMapReverse[u.estado] || u.estado || 'Activo',
     extra: u.rol === 'DRIVER' ? `Lic. ${u.telefono || 'N/A'}` : (u.rol === 'PARENT' ? 'Apoderado' : 'Admin'),
 });

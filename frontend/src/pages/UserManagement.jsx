@@ -13,8 +13,9 @@ export const UserManagement = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
-    const [newUser, setNewUser] = useState({ nombre: '', email: '', password: '', rol: 'Apoderado', telefono: '', estado: 'Activo' });
-    const [studentForm, setStudentForm] = useState({ nombre: '', curso: '', busId: '', routeId: '', horario: 'MANANA' });
+    const [newUser, setNewUser] = useState({ nombre: '', email: '', password: '', rol: 'Apoderado', telefono: '', rut: '', estado: 'Activo' });
+    const [studentForm, setStudentForm] = useState({ nombre: '', curso: '', rut: '', busId: '', routeId: '', horario: 'MANANA' });
+    const [driverBusId, setDriverBusId] = useState('');
     const [buses, setBuses] = useState([]);
     const [routes, setRoutes] = useState([]);
     const [saving, setSaving] = useState(false);
@@ -26,15 +27,24 @@ export const UserManagement = () => {
     }, []);
 
     const resetForm = () => {
-        setNewUser({ nombre: '', email: '', password: '', rol: 'Apoderado', telefono: '', estado: 'Activo' });
-        setStudentForm({ nombre: '', curso: '', busId: '', routeId: '', horario: 'MANANA' });
+        setNewUser({ nombre: '', email: '', password: '', rol: 'Apoderado', telefono: '', rut: '', estado: 'Activo' });
+        setStudentForm({ nombre: '', curso: '', rut: '', busId: '', routeId: '', horario: 'MANANA' });
+        setDriverBusId('');
         setError('');
     };
 
     const handleOpenModal = (user = null) => {
         setError('');
-        if (user) { setEditingUser(user); setNewUser({ ...user, password: '' }); }
-        else { resetForm(); }
+        if (user) {
+            setEditingUser(user);
+            setNewUser({ ...user, password: '' });
+            if (user.rol === 'Conductor') {
+                const bus = buses.find(b => b.conductor?.toLowerCase() === user.nombre?.toLowerCase());
+                setDriverBusId(bus?.id || '');
+            }
+        } else {
+            resetForm();
+        }
         setIsModalOpen(true);
     };
 
@@ -53,23 +63,37 @@ export const UserManagement = () => {
         try {
             if (editingUser) {
                 await updateUser(newUser);
+                if (newUser.rol === 'Conductor') {
+                    const bus = buses.find(b => b.id === driverBusId);
+                    if (bus) {
+                        await apiService.updateBus(driverBusId, { ...bus, conductor: newUser.nombre });
+                    }
+                }
                 toast.success('Usuario actualizado');
                 setIsModalOpen(false);
             } else {
                 const res = await addUser(newUser);
-                if (res?.data?.id && newUser.rol === 'Apoderado') {
-                    await apiService.createStudent({
-                        nombre: studentForm.nombre,
-                        curso: studentForm.curso,
-                        busId: studentForm.busId,
-                        routeId: studentForm.routeId,
-                        horario: studentForm.horario,
-                        parentId: res.data.id,
-                        apoderado: newUser.nombre,
-                        telefono: newUser.telefono || '',
-                        colegio: routes.find(r => r.id === studentForm.routeId)?.colegio || '',
-                        estado: 'EN_ESPERA',
-                    });
+                if (res?.data?.id) {
+                    if (newUser.rol === 'Apoderado') {
+                        await apiService.createStudent({
+                            nombre: studentForm.nombre,
+                            curso: studentForm.curso,
+                            rut: studentForm.rut || '',
+                            busId: studentForm.busId,
+                            routeId: studentForm.routeId,
+                            horario: studentForm.horario,
+                            parentId: res.data.id,
+                            apoderado: newUser.nombre,
+                            telefono: newUser.telefono || '',
+                            colegio: routes.find(r => r.id === studentForm.routeId)?.colegio || '',
+                            estado: 'EN_ESPERA',
+                        });
+                    } else if (newUser.rol === 'Conductor' && driverBusId) {
+                        const bus = buses.find(b => b.id === driverBusId);
+                        if (bus) {
+                            await apiService.updateBus(driverBusId, { ...bus, conductor: newUser.nombre });
+                        }
+                    }
                 }
                 toast.success('Usuario creado' + (newUser.rol === 'Apoderado' ? ' con estudiante asociado' : ''));
                 setIsModalOpen(false);
@@ -136,7 +160,7 @@ export const UserManagement = () => {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-white/5">
-                                        {['Nombre', 'Rol', 'Email', 'Estado', 'Teléfono', 'Acciones'].map(h => (
+                                        {['Nombre', 'Rol', 'Email', 'Estado', 'RUT', 'Teléfono', 'Acciones'].map(h => (
                                             <th key={h} className="text-left px-4 py-3 text-xs text-slate-400 font-bold uppercase tracking-wider">{h}</th>
                                         ))}
                                     </tr>
@@ -150,6 +174,7 @@ export const UserManagement = () => {
                                             <td className="px-4 py-3">
                                                 <span className={`px-2 py-1 rounded-lg text-xs font-bold ${user.estado === 'Activo' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{user.estado}</span>
                                             </td>
+                                            <td className="px-4 py-3 text-sm text-slate-400">{user.rut || '—'}</td>
                                             <td className="px-4 py-3 text-sm text-slate-400">{user.telefono || '—'}</td>
                                             <td className="px-4 py-3">
                                                 <div className="flex justify-end gap-1">
@@ -181,6 +206,41 @@ export const UserManagement = () => {
                         <input type="password" className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="Contraseña (mín. 6 caracteres)" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} />
                     )}
                     <input className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="Teléfono" value={newUser.telefono} onChange={e => setNewUser({ ...newUser, telefono: e.target.value })} />
+                    <input className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="RUT (ej: 12.345.678-9)" value={newUser.rut} onChange={e => setNewUser({ ...newUser, rut: e.target.value })} />
+
+                    {/* Conductor bus assignment */}
+                    {newUser.rol === 'Conductor' && (
+                        <div className="border-t border-white/10 pt-4 mt-4">
+                            <h3 className="text-base font-bold text-white flex items-center gap-2 mb-4">
+                                <Bus size={18} className="text-blue-400" /> Asignación de Bus
+                            </h3>
+                            <div className="space-y-3">
+                                <select className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none [&>option]:bg-slate-900" value={driverBusId} onChange={e => setDriverBusId(e.target.value)}>
+                                    <option value="">Seleccionar Bus...</option>
+                                    {buses.map(b => <option key={b.id} value={b.id}>{b.patente} — {b.conductor} (Cap: {b.capacidad})</option>)}
+                                </select>
+                                {driverBusId && (
+                                    <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl">
+                                        <p className="text-blue-300 text-sm font-bold mb-2">Rutas asignadas:</p>
+                                        {routes.filter(r => r.busId === driverBusId).length === 0 ? (
+                                            <p className="text-slate-400 text-xs">Sin rutas asignadas a este bus</p>
+                                        ) : (
+                                            routes.filter(r => r.busId === driverBusId).map(r => (
+                                                <div key={r.id} className="flex items-center gap-2 text-xs text-slate-300 py-1">
+                                                    <MapPin size={12} className="text-emerald-400 shrink-0" />
+                                                    <span className="font-medium">{r.nombre}</span>
+                                                    <span className="text-slate-500">—</span>
+                                                    <span>{r.colegio}</span>
+                                                    <span className="text-slate-500">—</span>
+                                                    <span className="text-amber-400">{r.horario}</span>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Student creation section for Apoderado */}
                     {!editingUser && newUser.rol === 'Apoderado' && (
@@ -190,6 +250,7 @@ export const UserManagement = () => {
                             </h3>
                             <div className="space-y-3">
                                 <input className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="Nombre del Estudiante" value={studentForm.nombre} onChange={e => setStudentForm({ ...studentForm, nombre: e.target.value })} />
+                                <input className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="RUT del Estudiante (ej: 12.345.678-9)" value={studentForm.rut} onChange={e => setStudentForm({ ...studentForm, rut: e.target.value })} />
                                 <input className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="Curso (ej: 4to B)" value={studentForm.curso} onChange={e => setStudentForm({ ...studentForm, curso: e.target.value })} />
                                 <select className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none [&>option]:bg-slate-900" value={studentForm.busId} onChange={e => { setStudentForm({ ...studentForm, busId: e.target.value }); const route = routes.find(r => r.busId === e.target.value); if (route) setStudentForm(prev => ({ ...prev, routeId: route.id })); }}>
                                     <option value="">Seleccionar Bus...</option>

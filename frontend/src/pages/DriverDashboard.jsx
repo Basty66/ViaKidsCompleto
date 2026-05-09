@@ -18,6 +18,7 @@ export const DriverDashboard = ({ tab }) => {
     const [routeDuration, setRouteDuration] = useState(0);
     const [todayAttendance, setTodayAttendance] = useState([]);
     const [busInfo, setBusInfo] = useState(null);
+    const [myRoutes, setMyRoutes] = useState([]);
     const [students, setStudents] = useState([]);
     const [incidents, setIncidents] = useState([]);
     const [lastScan, setLastScan] = useState(null);
@@ -44,6 +45,11 @@ export const DriverDashboard = ({ tab }) => {
                 ? buses.find(b => b.conductor === 'Juan Pérez') || buses[0]
                 : buses[0];
             setBusInfo(myBus);
+            if (myBus) {
+                apiService.getRoutes().then(allRoutes => {
+                    setMyRoutes(allRoutes.filter(r => r.busId === myBus.id));
+                }).catch(() => {});
+            }
         }).catch(() => {});
         apiService.getStudents().then(setStudents).catch(() => {});
         apiService.getAttendance({}).then(records => {
@@ -267,6 +273,27 @@ export const DriverDashboard = ({ tab }) => {
                         </div>
                     </div>
                 </div>
+
+                {/* Driver Routes Schedule */}
+                {myRoutes.length > 0 && (
+                    <div className="glass p-4 md:p-6 rounded-3xl animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                        <h2 className="text-base md:text-lg font-bold text-white mb-3 flex items-center gap-2">
+                            <MapPin size={18} className="text-emerald-400" /> Mis Rutas y Horarios
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {myRoutes.map(r => (
+                                <div key={r.id} className="bg-slate-900/40 p-4 rounded-xl border border-white/5 hover:border-white/10 transition-all">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="text-white font-bold text-sm">{r.nombre}</h3>
+                                        <span className="bg-amber-500/10 text-amber-400 px-2 py-1 rounded-lg text-xs font-bold">{r.horario}</span>
+                                    </div>
+                                    <p className="text-slate-400 text-xs">{r.colegio}</p>
+                                    <p className="text-slate-500 text-xs mt-1">{r.paradas} paradas</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Last Scan Notification */}
                 {lastScan && (
