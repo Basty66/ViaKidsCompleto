@@ -1,55 +1,74 @@
-// src/services/userService.js
+import api from '../api/axiosConfig';
+
+const roleMap = {
+    'Administrador': 'ADMIN',
+    'Conductor': 'DRIVER',
+    'Apoderado': 'PARENT',
+};
+
+const roleMapReverse = {
+    'ADMIN': 'Administrador',
+    'DRIVER': 'Conductor',
+    'PARENT': 'Apoderado',
+};
+
+const statusMap = {
+    'Activo': 'ACTIVO',
+    'Suspendido': 'SUSPENDIDO',
+};
+
+const statusMapReverse = {
+    'ACTIVO': 'Activo',
+    'SUSPENDIDO': 'Suspendido',
+};
+
+const mapToBackend = (u) => ({
+    nombre: u.nombre,
+    email: u.email,
+    password: u.password || undefined,
+    rol: roleMap[u.rol] || u.rol,
+    telefono: u.telefono || '',
+    estado: statusMap[u.estado] || u.estado || 'ACTIVO',
+});
+
+const mapFromBackend = (u) => ({
+    id: u.id,
+    nombre: u.nombre,
+    email: u.email,
+    rol: roleMapReverse[u.rol] || u.rol,
+    telefono: u.telefono || '',
+    estado: statusMapReverse[u.estado] || u.estado || 'Activo',
+    extra: u.rol === 'DRIVER' ? `Lic. ${u.telefono || 'N/A'}` : (u.rol === 'PARENT' ? 'Apoderado' : 'Admin'),
+});
+
 export const userService = {
     getAll: async () => {
-        // Simulando llamada a API con estructura extendida
-        return [
-            {
-                id: 1,
-                nombre: 'Juan Pérez',
-                email: 'juan@viakids.cl',
-                rol: 'Administrador',
-                telefono: '+56912345678',
-                estado: 'Activo',
-                extra: '-'
-            },
-            {
-                id: 2,
-                nombre: 'Ana López',
-                email: 'ana@viakids.cl',
-                rol: 'Conductor',
-                telefono: '+56987654321',
-                estado: 'Activo',
-                extra: 'Lic. Clase A'
-            },
-            {
-                id: 3,
-                nombre: 'Carlos Ruiz',
-                email: 'carlos@viakids.cl',
-                rol: 'Apoderado',
-                telefono: '+56911223344',
-                estado: 'Activo',
-                extra: 'Estudiante: Pedro Ruiz'
-            },
-        ];
+        const data = await api.get('/users').then(r => r.data);
+        return Array.isArray(data) ? data.map(mapFromBackend) : [];
     },
 
     create: async (user) => {
-        // Retornamos el objeto incluyendo el campo extra
-        return {
-            success: true,
-            data: {
-                ...user,
-                id: Date.now(),
-                extra: user.extra || '-'
-            }
-        };
+        const data = await api.post('/users', mapToBackend(user)).then(r => r.data);
+        return { success: true, data: mapFromBackend(data) };
     },
 
     update: async (user) => {
-        return { success: true, data: user };
+        const data = await api.put(`/users/${user.id}`, mapToBackend(user)).then(r => r.data);
+        return { success: true, data: mapFromBackend(data) };
     },
 
     delete: async (id) => {
+        await api.delete(`/users/${id}`);
         return { success: true };
-    }
+    },
+
+    changePassword: async (id, currentPassword, newPassword) => {
+        const data = await api.put(`/users/${id}/password`, { currentPassword, newPassword }).then(r => r.data);
+        return data;
+    },
+
+    changeOwnPassword: async (currentPassword, newPassword) => {
+        const data = await api.put('/users/password', { currentPassword, newPassword }).then(r => r.data);
+        return data;
+    },
 };

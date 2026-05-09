@@ -82,18 +82,24 @@ function App() {
     }, []);
 
     if (showSplash) {
-        return <SplashScreen onComplete={handleSplashComplete} />;
+        return (
+            <ErrorBoundary>
+                <SplashScreen onComplete={handleSplashComplete} />
+            </ErrorBoundary>
+        );
     }
 
     return (
-        <Router>
-            <AuthProvider>
-                <ToastProvider>
-                    <OfflineBanner />
-                    <AppContent splashDone={!showSplash} />
-                </ToastProvider>
-            </AuthProvider>
-        </Router>
+        <ErrorBoundary>
+            <Router>
+                <AuthProvider>
+                    <ToastProvider>
+                        <OfflineBanner />
+                        <AppContent splashDone={!showSplash} />
+                    </ToastProvider>
+                </AuthProvider>
+            </Router>
+        </ErrorBoundary>
     );
 }
 

@@ -4,14 +4,21 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard, Bus, Users, Map, LogOut, Menu, UserCircle, GraduationCap,
     Navigation, Bell, TrendingUp, QrCode, ClipboardCheck, AlertTriangle,
-    MapPin, ChevronLeft, ChevronRight, Shield, Phone
+    MapPin, ChevronLeft, ChevronRight, Shield, Phone, Lock, X
 } from 'lucide-react';
+import { Modal } from '../ui/Modal';
+import { useToast } from '../../context/ToastContext';
+import { userService } from '../../services/userService';
 
 export const DashboardLayout = ({ children }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [passwordModal, setPasswordModal] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    const [changingPassword, setChangingPassword] = useState(false);
     const { user, logout } = useAuth();
+    const toast = useToast();
     const location = useLocation();
 
     const role = user?.role || 'admin';
@@ -37,6 +44,21 @@ export const DashboardLayout = ({ children }) => {
     const handleLogout = () => {
         logout();
         window.location.href = '/';
+    };
+
+    const handleChangePassword = async () => {
+        if (passwordForm.newPassword.length < 6) { toast.warning('La nueva contraseña debe tener al menos 6 caracteres'); return; }
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) { toast.warning('Las contraseñas no coinciden'); return; }
+        setChangingPassword(true);
+        try {
+            await userService.changeOwnPassword(passwordForm.currentPassword, passwordForm.newPassword);
+            toast.success('Contraseña actualizada correctamente');
+            setPasswordModal(false);
+            setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        } catch (err) {
+            toast.error(err.response?.data?.message || err.message || 'Error al cambiar contraseña');
+        }
+        setChangingPassword(false);
     };
 
     const menuItems = {
@@ -68,6 +90,7 @@ export const DashboardLayout = ({ children }) => {
     const currentMenu = menuItems[role] || [];
 
     return (
+        <>
         <div className="h-screen w-full bg-slate-950 flex overflow-hidden font-sans text-slate-100">
             {/* Animated Background */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -157,6 +180,13 @@ export const DashboardLayout = ({ children }) => {
                         </div>
                     )}
                     <button
+                        onClick={() => setPasswordModal(true)}
+                        className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} w-full p-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200 mb-1`}
+                    >
+                        <Lock size={16} />
+                        {!isCollapsed && <span className="text-sm font-medium">Cambiar Contraseña</span>}
+                    </button>
+                    <button
                         onClick={handleLogout}
                         className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} w-full p-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all duration-200 border border-red-500/10`}
                     >
@@ -201,5 +231,26 @@ export const DashboardLayout = ({ children }) => {
                 </main>
             </div>
         </div>
+
+            <Modal isOpen={passwordModal} onClose={() => { setPasswordModal(false); setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' }); }} title="Cambiar Contraseña">
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-xs text-slate-400 ml-1 mb-1 block">Contraseña Actual</label>
+                        <input type="password" className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" value={passwordForm.currentPassword} onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} />
+                    </div>
+                    <div>
+                        <label className="text-xs text-slate-400 ml-1 mb-1 block">Nueva Contraseña</label>
+                        <input type="password" className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="Mínimo 6 caracteres" value={passwordForm.newPassword} onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} />
+                    </div>
+                    <div>
+                        <label className="text-xs text-slate-400 ml-1 mb-1 block">Confirmar Nueva Contraseña</label>
+                        <input type="password" className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" value={passwordForm.confirmPassword} onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} />
+                    </div>
+                    <button onClick={handleChangePassword} disabled={changingPassword} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all btn-ripple">
+                        {changingPassword ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Actualizando...</> : <><Lock size={18} /> Cambiar Contraseña</>}
+                    </button>
+                </div>
+            </Modal>
+        </>
     );
 };
