@@ -243,7 +243,7 @@ export const UserManagement = () => {
                     )}
 
                     {/* Student creation section for Apoderado */}
-                    {!editingUser && newUser.rol === 'Apoderado' && (
+                    {newUser.rol === 'Apoderado' && (
                         <div className="border-t border-white/10 pt-4 mt-4">
                             <h3 className="text-base font-bold text-white flex items-center gap-2 mb-4">
                                 <GraduationCap size={18} className="text-emerald-400" /> Datos del Estudiante Asociado
@@ -252,13 +252,13 @@ export const UserManagement = () => {
                                 <input className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="Nombre del Estudiante" value={studentForm.nombre} onChange={e => setStudentForm({ ...studentForm, nombre: e.target.value })} />
                                 <input className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="RUT del Estudiante (ej: 12.345.678-9)" value={studentForm.rut} onChange={e => setStudentForm({ ...studentForm, rut: e.target.value })} />
                                 <input className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="Curso (ej: 4to B)" value={studentForm.curso} onChange={e => setStudentForm({ ...studentForm, curso: e.target.value })} />
-                                <select className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none [&>option]:bg-slate-900" value={studentForm.busId} onChange={e => { setStudentForm({ ...studentForm, busId: e.target.value }); const route = routes.find(r => r.busId === e.target.value); if (route) setStudentForm(prev => ({ ...prev, routeId: route.id })); }}>
-                                    <option value="">Seleccionar Bus...</option>
-                                    {buses.map(b => <option key={b.id} value={b.id}>{b.patente} — {b.conductor}</option>)}
+                                <select className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none [&>option]:bg-slate-900" value={studentForm.busId} onChange={e => { setStudentForm({ ...studentForm, busId: e.target.value }); setStudentForm(prev => ({ ...prev, routeId: '' })); }}>
+                                    <option value="">Seleccionar Bus y Conductor...</option>
+                                    {buses.map(b => <option key={b.id} value={b.id}>🚌 {b.patente} — Conductor: {b.conductor}</option>)}
                                 </select>
                                 <select className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none [&>option]:bg-slate-900" value={studentForm.routeId} onChange={e => setStudentForm({ ...studentForm, routeId: e.target.value })}>
                                     <option value="">Seleccionar Ruta...</option>
-                                    {routes.filter(r => !studentForm.busId || r.busId === studentForm.busId).map(r => <option key={r.id} value={r.id}>{r.nombre} — {r.colegio} ({r.horario})</option>)}
+                                    {routes.filter(r => !studentForm.busId || r.busId === studentForm.busId).map(r => <option key={r.id} value={r.id}>🗺️ {r.nombre} — {r.colegio} ({r.horario})</option>)}
                                 </select>
                                 <div className="flex gap-2">
                                     <button type="button" onClick={() => setStudentForm({ ...studentForm, horario: 'MANANA' })} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${studentForm.horario === 'MANANA' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>
@@ -268,9 +268,15 @@ export const UserManagement = () => {
                                         🌇 Tarde
                                     </button>
                                 </div>
-                                {selectedRoute && (
-                                    <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl text-xs text-blue-300">
-                                        <Bus size={14} className="inline mr-1" /> Ruta: {selectedRoute.nombre} — {selectedRoute.colegio} — {selectedRoute.horario}
+                                {studentForm.busId && studentForm.routeId && studentForm.horario && (
+                                    <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl space-y-1">
+                                        <p className="text-blue-300 text-xs font-bold mb-1">Resumen de asignación:</p>
+                                        <p className="text-blue-300 text-xs">👤 Estudiante: {studentForm.nombre || '—'}</p>
+                                        <p className="text-blue-300 text-xs">📋 RUT: {studentForm.rut || '—'}</p>
+                                        <p className="text-blue-300 text-xs">📚 Curso: {studentForm.curso}</p>
+                                        <p className="text-blue-300 text-xs">🚌 Bus: {buses.find(b => b.id === studentForm.busId)?.patente} — Conductor: {buses.find(b => b.id === studentForm.busId)?.conductor}</p>
+                                        <p className="text-blue-300 text-xs">🗺️ Ruta: {selectedRoute?.nombre} — {selectedRoute?.colegio} ({selectedRoute?.horario})</p>
+                                        <p className="text-blue-300 text-xs">🕐 Jornada: {studentForm.horario === 'MANANA' ? 'Mañana' : 'Tarde'}</p>
                                     </div>
                                 )}
                             </div>
