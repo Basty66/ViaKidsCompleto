@@ -26,6 +26,11 @@ public class StudentController {
         return studentService.getById(id);
     }
 
+    @GetMapping("/by-parent/{parentId}")
+    public java.util.List<Student> getByParentId(@PathVariable UUID parentId) {
+        return studentService.getByParentId(parentId);
+    }
+
     @PostMapping
     public Student create(@RequestBody Student student) {
         return studentService.create(student);

@@ -39,6 +39,12 @@ public class Student {
     @Column(name = "route_id")
     private UUID routeId;
 
+    @Column(name = "parent_id")
+    private UUID parentId;
+
+    @Enumerated(EnumType.STRING)
+    private Horario horario = Horario.MANANA;
+
     @Transient
     private String busPatente;
 
@@ -47,5 +53,9 @@ public class Student {
 
     public enum StudentStatus {
         EN_ESPERA, EN_BUS, ENTREGADO, AUSENTE
+    }
+
+    public enum Horario {
+        MANANA, TARDE
     }
 }

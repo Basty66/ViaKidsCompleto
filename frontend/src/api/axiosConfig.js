@@ -21,6 +21,7 @@ api.interceptors.response.use(
             localStorage.removeItem('viakids_token_v3');
             localStorage.removeItem('viakids_role_v3');
             localStorage.removeItem('viakids_name_v3');
+            localStorage.removeItem('viakids_id_v3');
             window.location.href = '/';
         }
         return Promise.reject(error);

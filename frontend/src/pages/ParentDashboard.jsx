@@ -67,19 +67,28 @@ export const ParentDashboard = ({ tab }) => {
     };
 
     useEffect(() => {
-        apiService.getStudents().then(students => {
-            const userNombre = user?.name?.toLowerCase() || '';
-            const myStudent = students.find(s =>
-                s.apoderado?.toLowerCase().includes(userNombre) ||
-                s.apoderado?.toLowerCase().includes(userNombre.split(' ')[0])
-            ) || students[0];
-            if (myStudent) loadStudentData(myStudent);
-        }).catch(() => {
-            const localStudents = [
-                { id: 'S01', nombre: 'Mateo García', curso: '4to B', rut: '20.123.456-7', apoderado: 'Carlos García', telefono: '+56912345678', busId: 'B01', busPatente: 'AB-1234', ruta: 'Ruta Norte', colegio: 'Colegio Los Andes', estado: 'En espera' },
-            ];
-            loadStudentData(localStudents[0]);
-        });
+        const parentId = user?.id;
+        if (parentId) {
+            apiService.getStudentsByParent(parentId).then(students => {
+                if (students && students.length > 0) loadStudentData(students[0]);
+            }).catch(() => {
+                apiService.getStudents().then(students => {
+                    const myStudent = students.find(s =>
+                        s.apoderado?.toLowerCase().includes(user?.name?.toLowerCase().split(' ')[0] || '')
+                    ) || students[0];
+                    if (myStudent) loadStudentData(myStudent);
+                }).catch(() => {});
+            });
+        } else {
+            apiService.getStudents().then(students => {
+                const userNombre = user?.name?.toLowerCase() || '';
+                const myStudent = students.find(s =>
+                    s.apoderado?.toLowerCase().includes(userNombre) ||
+                    s.apoderado?.toLowerCase().includes(userNombre.split(' ')[0])
+                ) || students[0];
+                if (myStudent) loadStudentData(myStudent);
+            }).catch(() => {});
+        }
         apiService.getNotifications().then(list => {
             const filtered = list.filter(n => {
                 const roles = (n.targetRoles || '').split(',');

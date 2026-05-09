@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/templates/DashboardLayout';
-import { DataTable } from '../components/ui/DataTable';
 import { Modal } from '../components/ui/Modal';
 import { useUsers } from '../hooks/useUsers';
-import { Plus, Search, Edit2, Trash2, AlertCircle, Download, Users } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, AlertCircle, Download, Users, GraduationCap, Bus } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { apiService } from '../services/api';
 import * as XLSX from 'xlsx';
 
 export const UserManagement = () => {
@@ -14,12 +14,27 @@ export const UserManagement = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [newUser, setNewUser] = useState({ nombre: '', email: '', password: '', rol: 'Apoderado', telefono: '', estado: 'Activo' });
+    const [studentForm, setStudentForm] = useState({ nombre: '', curso: '', busId: '', routeId: '', horario: 'MANANA' });
+    const [buses, setBuses] = useState([]);
+    const [routes, setRoutes] = useState([]);
+    const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        apiService.getBuses().then(setBuses).catch(() => {});
+        apiService.getRoutes().then(setRoutes).catch(() => {});
+    }, []);
+
+    const resetForm = () => {
+        setNewUser({ nombre: '', email: '', password: '', rol: 'Apoderado', telefono: '', estado: 'Activo' });
+        setStudentForm({ nombre: '', curso: '', busId: '', routeId: '', horario: 'MANANA' });
+        setError('');
+    };
 
     const handleOpenModal = (user = null) => {
         setError('');
         if (user) { setEditingUser(user); setNewUser({ ...user, password: '' }); }
-        else { setEditingUser(null); setNewUser({ nombre: '', email: '', password: '', rol: 'Apoderado', telefono: '', estado: 'Activo' }); }
+        else { resetForm(); }
         setIsModalOpen(true);
     };
 
@@ -27,13 +42,42 @@ export const UserManagement = () => {
         if (!newUser.nombre || !newUser.email) { setError('Nombre y email obligatorios'); return; }
         if (!editingUser && !newUser.password) { setError('La contraseña es obligatoria para nuevos usuarios'); return; }
         if (newUser.password && newUser.password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return; }
-        try {
-            if (editingUser) { await updateUser(newUser); toast.success('Usuario actualizado'); }
-            else { await addUser(newUser); toast.success('Usuario creado'); }
-            setIsModalOpen(false);
-        } catch (err) {
-            setError(err?.message || 'Error al guardar');
+
+        if (!editingUser && newUser.rol === 'Apoderado') {
+            if (!studentForm.nombre || !studentForm.curso || !studentForm.busId || !studentForm.routeId) {
+                setError('Debes completar los datos del estudiante (nombre, curso, bus y ruta)'); return;
+            }
         }
+
+        setSaving(true);
+        try {
+            if (editingUser) {
+                await updateUser(newUser);
+                toast.success('Usuario actualizado');
+                setIsModalOpen(false);
+            } else {
+                const res = await addUser(newUser);
+                if (res?.data?.id && newUser.rol === 'Apoderado') {
+                    await apiService.createStudent({
+                        nombre: studentForm.nombre,
+                        curso: studentForm.curso,
+                        busId: studentForm.busId,
+                        routeId: studentForm.routeId,
+                        horario: studentForm.horario,
+                        parentId: res.data.id,
+                        apoderado: newUser.nombre,
+                        telefono: newUser.telefono || '',
+                        colegio: routes.find(r => r.id === studentForm.routeId)?.colegio || '',
+                        estado: 'EN_ESPERA',
+                    });
+                }
+                toast.success('Usuario creado' + (newUser.rol === 'Apoderado' ? ' con estudiante asociado' : ''));
+                setIsModalOpen(false);
+            }
+        } catch (err) {
+            setError(err?.response?.data?.message || err?.message || 'Error al guardar');
+        }
+        setSaving(false);
     };
 
     const handleDelete = async (id) => { await deleteUser(id); toast.success('Usuario eliminado'); };
@@ -51,6 +95,8 @@ export const UserManagement = () => {
         XLSX.writeFile(wb, 'Usuarios_ViaKids.xlsx');
         toast.success('Excel exportado');
     };
+
+    const selectedRoute = routes.find(r => r.id === studentForm.routeId);
 
     return (
         <DashboardLayout>
@@ -123,20 +169,55 @@ export const UserManagement = () => {
                 )}
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingUser ? 'Editar Usuario' : 'Registrar Usuario'}>
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingUser ? 'Editar Usuario' : 'Registrar Usuario'} size="lg">
                 <div className="space-y-4">
                     {error && <div className="text-red-400 flex items-center gap-2 text-sm bg-red-500/10 p-3 rounded-xl"><AlertCircle size={16} /> {error}</div>}
                     <input className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="Nombre Completo" value={newUser.nombre} onChange={e => setNewUser({ ...newUser, nombre: e.target.value })} />
                     <input className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="Email" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} />
-                    <select className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none [&>option]:bg-slate-900" value={newUser.rol} onChange={e => setNewUser({ ...newUser, rol: e.target.value })}>
+                    <select className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none [&>option]:bg-slate-900" value={newUser.rol} onChange={e => { setNewUser({ ...newUser, rol: e.target.value }); setError(''); }}>
                         <option>Administrador</option><option>Conductor</option><option>Apoderado</option>
                     </select>
                     {!editingUser && (
                         <input type="password" className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="Contraseña (mín. 6 caracteres)" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} />
                     )}
                     <input className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="Teléfono" value={newUser.telefono} onChange={e => setNewUser({ ...newUser, telefono: e.target.value })} />
-                    <button onClick={handleSave} className="w-full bg-blue-600 py-3 rounded-xl text-white font-bold hover:bg-blue-700 transition-all btn-ripple">
-                        {editingUser ? 'Actualizar' : 'Guardar'}
+
+                    {/* Student creation section for Apoderado */}
+                    {!editingUser && newUser.rol === 'Apoderado' && (
+                        <div className="border-t border-white/10 pt-4 mt-4">
+                            <h3 className="text-base font-bold text-white flex items-center gap-2 mb-4">
+                                <GraduationCap size={18} className="text-emerald-400" /> Datos del Estudiante Asociado
+                            </h3>
+                            <div className="space-y-3">
+                                <input className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="Nombre del Estudiante" value={studentForm.nombre} onChange={e => setStudentForm({ ...studentForm, nombre: e.target.value })} />
+                                <input className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none" placeholder="Curso (ej: 4to B)" value={studentForm.curso} onChange={e => setStudentForm({ ...studentForm, curso: e.target.value })} />
+                                <select className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none [&>option]:bg-slate-900" value={studentForm.busId} onChange={e => { setStudentForm({ ...studentForm, busId: e.target.value }); const route = routes.find(r => r.busId === e.target.value); if (route) setStudentForm(prev => ({ ...prev, routeId: route.id })); }}>
+                                    <option value="">Seleccionar Bus...</option>
+                                    {buses.map(b => <option key={b.id} value={b.id}>{b.patente} — {b.conductor}</option>)}
+                                </select>
+                                <select className="w-full bg-slate-900/50 p-3 rounded-xl text-white border border-white/10 outline-none [&>option]:bg-slate-900" value={studentForm.routeId} onChange={e => setStudentForm({ ...studentForm, routeId: e.target.value })}>
+                                    <option value="">Seleccionar Ruta...</option>
+                                    {routes.filter(r => !studentForm.busId || r.busId === studentForm.busId).map(r => <option key={r.id} value={r.id}>{r.nombre} — {r.colegio} ({r.horario})</option>)}
+                                </select>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={() => setStudentForm({ ...studentForm, horario: 'MANANA' })} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${studentForm.horario === 'MANANA' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>
+                                        🌅 Mañana
+                                    </button>
+                                    <button type="button" onClick={() => setStudentForm({ ...studentForm, horario: 'TARDE' })} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${studentForm.horario === 'TARDE' ? 'bg-amber-600 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>
+                                        🌇 Tarde
+                                    </button>
+                                </div>
+                                {selectedRoute && (
+                                    <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl text-xs text-blue-300">
+                                        <Bus size={14} className="inline mr-1" /> Ruta: {selectedRoute.nombre} — {selectedRoute.colegio} — {selectedRoute.horario}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <button onClick={handleSave} disabled={saving} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all btn-ripple">
+                        {saving ? <>Guardando...</> : (editingUser ? 'Actualizar' : 'Guardar')}
                     </button>
                 </div>
             </Modal>

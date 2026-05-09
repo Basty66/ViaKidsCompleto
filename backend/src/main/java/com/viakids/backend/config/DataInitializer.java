@@ -126,12 +126,14 @@ public class DataInitializer implements CommandLineRunner {
         s1.setNombre("Mateo García");
         s1.setCurso("4to B");
         s1.setRut("20.123.456-7");
-        s1.setApoderado("Carlos García");
+        s1.setApoderado("Carlos Ruiz");
         s1.setTelefono("+56912345678");
         s1.setBusId(b1.getId());
         s1.setRouteId(r1.getId());
         s1.setColegio("Colegio Los Andes");
         s1.setEstado(Student.StudentStatus.EN_ESPERA);
+        s1.setParentId(parent.getId());
+        s1.setHorario(Student.Horario.MANANA);
         studentRepository.save(s1);
 
         Student s2 = new Student();

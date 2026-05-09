@@ -54,6 +54,10 @@ public class StudentService {
         return enrich(studentRepository.save(student));
     }
 
+    public List<Student> getByParentId(UUID parentId) {
+        return enrichAll(studentRepository.findByParentId(parentId));
+    }
+
     public void delete(UUID id) {
         studentRepository.deleteById(id);
     }

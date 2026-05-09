@@ -18,6 +18,7 @@ export const apiService = {
     updateStudent: (id, data) => api.put(`/students/${id}`, data).then(r => r.data),
     deleteStudent: (id) => api.delete(`/students/${id}`).then(r => r.data),
     getStudentQR: (id) => api.get(`/students/${id}/qr`).then(r => r.data),
+    getStudentsByParent: (parentId) => api.get(`/students/by-parent/${parentId}`).then(r => r.data),
 
     getBuses: () => api.get('/buses').then(r => r.data),
     getBus: (id) => api.get(`/buses/${id}`).then(r => r.data),

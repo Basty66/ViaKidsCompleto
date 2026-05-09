@@ -9,4 +9,5 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
     List<Student> findByBusId(UUID busId);
     List<Student> findByRouteId(UUID routeId);
     List<Student> findByEstado(Student.StudentStatus estado);
+    List<Student> findByParentId(UUID parentId);
 }
