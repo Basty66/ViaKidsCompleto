@@ -12,14 +12,25 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
-    @Value("${app.cors.origins}")
+    @Value("${app.cors.origins:}")
     private String allowedOrigins;
+
+    private List<String> defaultOrigins() {
+        return List.of(
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:5175",
+            "https://*.vercel.app"
+        );
+    }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Use patterns so Vercel preview deployments work (e.g. https://*-*.vercel.app)
-        config.setAllowedOriginPatterns(List.of(allowedOrigins.split(",")));
+        List<String> origins = allowedOrigins.isBlank()
+            ? defaultOrigins()
+            : List.of(allowedOrigins.split(","));
+        config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
