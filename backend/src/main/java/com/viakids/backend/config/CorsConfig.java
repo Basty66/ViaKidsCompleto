@@ -14,11 +14,13 @@ public class CorsConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of(
+        config.setAllowedOrigins(List.of(
             "http://localhost:5173",
             "http://localhost:5174",
             "http://localhost:5175",
-            "https://*.vercel.app"
+            "https://viakids-capstone.vercel.app",
+            "https://viakids.vercel.app",
+            "https://viakidscompleto.vercel.app"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
