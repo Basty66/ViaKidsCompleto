@@ -124,6 +124,10 @@ export const ParentDashboard = ({ tab }) => {
     }, [showQR]);
 
     useEffect(() => {
+        if (showTracking) setActiveSection('tracking');
+    }, [showTracking]);
+
+    useEffect(() => {
         const updateQrSize = () => {
             setQrSize(Math.min(window.innerWidth - 80, 320));
         };

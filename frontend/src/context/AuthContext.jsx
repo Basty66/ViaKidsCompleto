@@ -7,18 +7,24 @@ const NAME_KEY = `viakids_name_${AUTH_VERSION}`;
 const ID_KEY = `viakids_id_${AUTH_VERSION}`;
 const SPLASH_KEY = 'viakids_splash_seen';
 
+const safeLocal = {
+    getItem: (k) => { try { return localStorage.getItem(k) } catch(e) { return null } },
+    setItem: (k, v) => { try { localStorage.setItem(k, v) } catch(e) {} },
+    removeItem: (k) => { try { localStorage.removeItem(k) } catch(e) {} },
+};
+
 const cleanOldStorage = () => {
     const oldKeys = ['token', 'userRole', 'userName', 'viakids_token_v2', 'viakids_role_v2', 'viakids_name_v2'];
-    oldKeys.forEach(k => localStorage.removeItem(k));
+    oldKeys.forEach(k => safeLocal.removeItem(k));
 };
 
 // Read auth state synchronously from localStorage
 const getInitialUser = () => {
     cleanOldStorage();
-    const token = localStorage.getItem(TOKEN_KEY);
-    const role = localStorage.getItem(ROLE_KEY);
-    const name = localStorage.getItem(NAME_KEY);
-    const id = localStorage.getItem(ID_KEY);
+    const token = safeLocal.getItem(TOKEN_KEY);
+    const role = safeLocal.getItem(ROLE_KEY);
+    const name = safeLocal.getItem(NAME_KEY);
+    const id = safeLocal.getItem(ID_KEY);
 
     if (token && role) {
         return { token, role, name: name || role, id: id || null };
@@ -35,27 +41,27 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(getInitialUser);
 
     const login = (userData) => {
-        localStorage.setItem(TOKEN_KEY, userData.token);
-        localStorage.setItem(ROLE_KEY, userData.role);
-        if (userData.name) localStorage.setItem(NAME_KEY, userData.name);
-        if (userData.id) localStorage.setItem(ID_KEY, userData.id);
+        safeLocal.setItem(TOKEN_KEY, userData.token);
+        safeLocal.setItem(ROLE_KEY, userData.role);
+        if (userData.name) safeLocal.setItem(NAME_KEY, userData.name);
+        if (userData.id) safeLocal.setItem(ID_KEY, userData.id);
         setUser({ token: userData.token, role: userData.role, name: userData.name || userData.role, id: userData.id || null });
     };
 
     const logout = () => {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(ROLE_KEY);
-        localStorage.removeItem(NAME_KEY);
-        localStorage.removeItem(ID_KEY);
+        safeLocal.removeItem(TOKEN_KEY);
+        safeLocal.removeItem(ROLE_KEY);
+        safeLocal.removeItem(NAME_KEY);
+        safeLocal.removeItem(ID_KEY);
         setUser(null);
     };
 
     // Double-check storage on mount (for cases where browser restored state)
     useEffect(() => {
-        const token = localStorage.getItem(TOKEN_KEY);
-        const role = localStorage.getItem(ROLE_KEY);
-        const name = localStorage.getItem(NAME_KEY);
-        const id = localStorage.getItem(ID_KEY);
+        const token = safeLocal.getItem(TOKEN_KEY);
+        const role = safeLocal.getItem(ROLE_KEY);
+        const name = safeLocal.getItem(NAME_KEY);
+        const id = safeLocal.getItem(ID_KEY);
 
         if (token && role) {
             setUser({ token, role, name: name || role, id: id || null });
@@ -77,6 +83,6 @@ export const useAuth = () => {
     return context;
 };
 
-export const hasSeenSplash = () => localStorage.getItem(SPLASH_KEY) === 'true';
+export const hasSeenSplash = () => safeLocal.getItem(SPLASH_KEY) === 'true';
 
-export const markSplashSeen = () => localStorage.setItem(SPLASH_KEY, 'true');
+export const markSplashSeen = () => safeLocal.setItem(SPLASH_KEY, 'true');

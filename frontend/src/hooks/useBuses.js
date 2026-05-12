@@ -1,5 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
-import { busService } from '../services/busService';
+import { apiService } from '../services/api';
+
+const mapFromApi = (b) => ({
+    id: b.id,
+    patente: b.patente,
+    conductor: b.conductor || '',
+    capacidad: b.capacidad || 0,
+    estado: b.estado || 'En Espera',
+    lat: b.lat,
+    lng: b.lng,
+});
 
 export const useBuses = () => {
     const [buses, setBuses] = useState([]);
@@ -9,9 +19,9 @@ export const useBuses = () => {
 
     useEffect(() => {
         let isMounted = true;
-        busService.getAll().then(data => {
-            if (isMounted) { setBuses(data); setLoading(false); }
-        });
+        apiService.getBuses().then(data => {
+            if (isMounted) { setBuses((data || []).map(mapFromApi)); setLoading(false); }
+        }).catch(() => { if (isMounted) setLoading(false); });
         return () => { isMounted = false; };
     }, []);
 
@@ -29,9 +39,25 @@ export const useBuses = () => {
         return result;
     }, [buses, filter, searchTerm]);
 
-    const addBus = async (newBus) => { const res = await busService.create(newBus); if (res.success) setBuses(p => [...p, res.data]); return res; };
-    const updateBus = async (updatedBus) => { const res = await busService.update(updatedBus); if (res.success) setBuses(p => p.map(b => b.id === updatedBus.id ? res.data : b)); return res; };
-    const deleteBus = async (id) => { const res = await busService.delete(id); if (res.success) setBuses(p => p.filter(b => b.id !== id)); return res; };
+    const addBus = async (newBus) => {
+        const data = await apiService.createBus(newBus);
+        const mapped = mapFromApi(data);
+        setBuses(p => [...p, mapped]);
+        return { success: true, data: mapped };
+    };
+
+    const updateBus = async (updatedBus) => {
+        const data = await apiService.updateBus(updatedBus.id, updatedBus);
+        const mapped = mapFromApi(data);
+        setBuses(p => p.map(b => b.id === updatedBus.id ? mapped : b));
+        return { success: true, data: mapped };
+    };
+
+    const deleteBus = async (id) => {
+        await apiService.deleteBus(id);
+        setBuses(p => p.filter(b => b.id !== id));
+        return { success: true };
+    };
 
     const validateForm = (data, editingId = null) => {
         if (!data.patente?.trim() || !data.conductor?.trim()) return 'La patente y el conductor son obligatorios.';

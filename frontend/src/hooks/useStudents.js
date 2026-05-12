@@ -1,5 +1,21 @@
 import { useState, useEffect, useMemo } from 'react';
-import { studentService } from '../services/studentService';
+import { apiService } from '../services/api';
+
+const mapFromApi = (s) => ({
+    id: s.id,
+    nombre: s.nombre,
+    curso: s.curso,
+    rut: s.rut || '',
+    apoderado: s.apoderado || '',
+    telefono: s.telefono || '',
+    busId: s.busId || '',
+    busPatente: s.busPatente || '',
+    ruta: s.ruta || '',
+    colegio: s.colegio || '',
+    estado: s.estado || 'En espera',
+    parentId: s.parentId || '',
+    horario: s.horario || 'MANANA',
+});
 
 export const useStudents = () => {
     const [students, setStudents] = useState([]);
@@ -10,9 +26,9 @@ export const useStudents = () => {
 
     useEffect(() => {
         let isMounted = true;
-        studentService.getAll().then(data => {
-            if (isMounted) { setStudents(data); setLoading(false); }
-        });
+        apiService.getStudents().then(data => {
+            if (isMounted) { setStudents((data || []).map(mapFromApi)); setLoading(false); }
+        }).catch(() => { if (isMounted) setLoading(false); });
         return () => { isMounted = false; };
     }, []);
 
@@ -27,27 +43,29 @@ export const useStudents = () => {
     }, [students, searchTerm, selectedBusFilter, estadoFilter]);
 
     const addStudent = async (student) => {
-        const res = await studentService.create(student);
-        if (res.success) setStudents(p => [...p, res.data]);
-        return res;
+        const res = await apiService.createStudent(student);
+        const mapped = mapFromApi(res);
+        setStudents(p => [...p, mapped]);
+        return { success: true, data: mapped };
     };
 
     const updateStudent = async (student) => {
-        const res = await studentService.update(student);
-        if (res.success) setStudents(p => p.map(s => s.id === student.id ? res.data : s));
-        return res;
+        const res = await apiService.updateStudent(student.id, student);
+        const mapped = mapFromApi(res);
+        setStudents(p => p.map(s => s.id === student.id ? mapped : s));
+        return { success: true, data: mapped };
     };
 
     const deleteStudent = async (id) => {
-        const res = await studentService.delete(id);
-        if (res.success) setStudents(p => p.filter(s => s.id !== id));
-        return res;
+        await apiService.deleteStudent(id);
+        setStudents(p => p.filter(s => s.id !== id));
+        return { success: true };
     };
 
     const refreshStudents = async () => {
         setLoading(true);
-        const data = await studentService.getAll();
-        setStudents(data);
+        const data = await apiService.getStudents();
+        setStudents((data || []).map(mapFromApi));
         setLoading(false);
     };
 

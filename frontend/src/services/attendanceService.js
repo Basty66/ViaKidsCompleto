@@ -9,12 +9,17 @@ const initialRecords = [
     { id: 'A004', studentId: 'S01', studentName: 'Mateo García', busId: 'B01', busPatente: 'AB-1234', route: 'Ruta Norte', timestamp: '2026-05-06T16:05:00', action: 'disembarked', tripType: 'afternoon' },
 ];
 
+const safeLocal = {
+    getItem: (k) => { try { return localStorage.getItem(k) } catch(e) { return null } },
+    setItem: (k, v) => { try { localStorage.setItem(k, v) } catch(e) {} },
+};
+
 const getLocalDb = () => {
-    const data = localStorage.getItem(STORAGE_KEY);
+    const data = safeLocal.getItem(STORAGE_KEY);
     return data ? JSON.parse(data) : initialRecords;
 };
 
-const saveLocalDb = (data) => localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+const saveLocalDb = (data) => safeLocal.setItem(STORAGE_KEY, JSON.stringify(data));
 
 const todayPrefix = () => new Date().toISOString().split('T')[0];
 

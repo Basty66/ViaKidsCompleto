@@ -23,7 +23,7 @@ export const StudentManagement = () => {
     const [isQRModalOpen, setIsQRModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null);
     const [selectedStudent, setSelectedStudent] = useState(null);
-    const [formData, setFormData] = useState({ nombre: '', curso: '', rut: '', apoderado: '', telefono: '', busId: '', busPatente: '', ruta: '', colegio: '' });
+    const [formData, setFormData] = useState({ nombre: '', curso: '', rut: '', apoderado: '', telefono: '', busId: '', busPatente: '', ruta: '', routeId: '', colegio: '' });
 
     const handleSave = async () => {
         if (!formData.nombre || !formData.curso) { toast.warning('Nombre y curso son obligatorios'); return; }
@@ -35,18 +35,18 @@ export const StudentManagement = () => {
             toast.success('Estudiante registrado');
         }
         setIsModalOpen(false);
-        setFormData({ nombre: '', curso: '', rut: '', apoderado: '', telefono: '', busId: '', busPatente: '', ruta: '', colegio: '' });
+        setFormData({ nombre: '', curso: '', rut: '', apoderado: '', telefono: '', busId: '', busPatente: '', ruta: '', routeId: '', colegio: '' });
     };
 
     const openCreateModal = () => {
         setEditingStudent(null);
-        setFormData({ nombre: '', curso: '', rut: '', apoderado: '', telefono: '', busId: '', busPatente: '', ruta: '', colegio: '' });
+        setFormData({ nombre: '', curso: '', rut: '', apoderado: '', telefono: '', busId: '', busPatente: '', ruta: '', routeId: '', colegio: '' });
         setIsModalOpen(true);
     };
 
     const openEditModal = (row) => {
         setEditingStudent(row);
-        setFormData({ nombre: row.nombre || '', curso: row.curso || '', rut: row.rut || '', apoderado: row.apoderado || '', telefono: row.telefono || '', busId: row.busId || '', busPatente: row.busPatente || '', ruta: row.ruta || '', colegio: row.colegio || '' });
+        setFormData({ nombre: row.nombre || '', curso: row.curso || '', rut: row.rut || '', apoderado: row.apoderado || '', telefono: row.telefono || '', busId: row.busId || '', busPatente: row.busPatente || '', ruta: row.ruta || '', routeId: row.routeId || '', colegio: row.colegio || '' });
         setIsModalOpen(true);
     };
 
@@ -154,9 +154,9 @@ export const StudentManagement = () => {
                     />
                     <Select
                         label="Ruta"
-                        value={formData.ruta}
-                        onChange={(val) => setFormData({ ...formData, ruta: val })}
-                        options={routes.map(r => ({ value: r.nombre, label: `${r.nombre} — ${r.colegio}` }))}
+                        value={formData.routeId}
+                        onChange={(val) => { const r = routes.find(rt => rt.id === val); setFormData({ ...formData, routeId: val, ruta: r ? r.nombre : '', colegio: r ? r.colegio : '' }); }}
+                        options={routes.map(r => ({ value: r.id, label: `${r.nombre} — ${r.colegio}` }))}
                         placeholder="Seleccionar Ruta..."
                     />
                     <button onClick={handleSave} className="w-full bg-blue-600 py-3 rounded-xl text-white font-bold hover:bg-blue-700 transition-all btn-ripple">

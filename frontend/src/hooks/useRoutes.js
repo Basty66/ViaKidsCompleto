@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
-import { routeService } from '../services/routeService';
+import { apiService } from '../services/api';
+
+const mapFromApi = (r) => ({
+    id: r.id,
+    nombre: r.nombre,
+    colegio: r.colegio,
+    busId: r.busId || '',
+    horario: r.horario,
+    paradas: r.paradas || 0,
+});
 
 export const useRoutes = () => {
     const [routes, setRoutes] = useState([]);
@@ -8,8 +17,8 @@ export const useRoutes = () => {
     const fetchRoutes = async () => {
         setLoading(true);
         try {
-            const data = await routeService.getAll();
-            setRoutes(data || []);
+            const data = await apiService.getRoutes();
+            setRoutes((data || []).map(mapFromApi));
         } catch (error) {
             console.error("Error cargando rutas:", error);
         } finally {
@@ -23,9 +32,10 @@ export const useRoutes = () => {
 
     const addRoute = async (newRoute) => {
         try {
-            const added = await routeService.create(newRoute);
-            setRoutes([...routes, added || { ...newRoute, id: Date.now().toString() }]);
-            return { success: true };
+            const data = await apiService.createRoute(newRoute);
+            const mapped = mapFromApi(data);
+            setRoutes([...routes, mapped]);
+            return { success: true, data: mapped };
         } catch (error) {
             console.error("Error creando ruta:", error);
             return { success: false, error: "Error al crear la ruta" };
@@ -34,9 +44,10 @@ export const useRoutes = () => {
 
     const updateRoute = async (updatedRoute) => {
         try {
-            const updated = await routeService.update(updatedRoute.id, updatedRoute);
-            setRoutes(routes.map(r => r.id === updatedRoute.id ? (updated || updatedRoute) : r));
-            return { success: true };
+            const data = await apiService.updateRoute(updatedRoute.id, updatedRoute);
+            const mapped = mapFromApi(data);
+            setRoutes(routes.map(r => r.id === updatedRoute.id ? mapped : r));
+            return { success: true, data: mapped };
         } catch (error) {
             console.error("Error actualizando ruta:", error);
             return { success: false, error: "Error al actualizar la ruta" };
@@ -45,7 +56,7 @@ export const useRoutes = () => {
 
     const deleteRoute = async (id) => {
         try {
-            await routeService.delete(id);
+            await apiService.deleteRoute(id);
             setRoutes(prev => prev.filter(r => r.id !== id));
             return { success: true };
         } catch (error) {
