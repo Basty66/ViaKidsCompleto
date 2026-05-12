@@ -17,10 +17,9 @@ public class CorsConfig {
 
     @Bean
     public CorsFilter corsFilter() {
-        List<String> origins = List.of(allowedOrigins.split(","));
-
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(origins);
+        // Use patterns so Vercel preview deployments work (e.g. https://*-*.vercel.app)
+        config.setAllowedOriginPatterns(List.of(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
